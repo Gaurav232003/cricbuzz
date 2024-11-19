@@ -1,44 +1,57 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const MatchSchema = new mongoose.Schema(
-  {
-    matchId: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    teams: [
+const scoreSchema = new mongoose.Schema({
+  matchId: { type: String, required: true },
+  batsmanStats: {
+    type: [
       {
-        name: { type: String, required: true },
-        players: [{ type: String, required: true }],
+        name: String,
+        runs: Number,
+        balls: Number,
       },
     ],
-    overs: {
-      type: Number,
-      required: true,
-    },
-    currentOver: {
-      type: Number,
-      default: 0,
-    },
-    currentBall: {
-      type: Number,
-      default: 0,
-    },
-    score: [
+    default: [],
+  },
+  bowlerStats: {
+    type: [
       {
-        team: { type: Number, required: true },
-        extras: { type: Number, default: 0 },
-        wickets: { type: Number, default: 0 },
+        name: String,
+        overs: Number,
+        runsConceded: Number,
+        wickets: Number,
       },
     ],
-    status: {
-      type: String,
-      enum: ["in-progress", "completed", "scheduled"],
-      default: "scheduled",
+    default: [],
+  },
+  teamStats: {
+    totalRuns: { type: Number, default: 0 },
+    totalWickets: { type: Number, default: 0 },
+    extras: {
+      wides: { type: Number, default: 0 },
+      noBalls: { type: Number, default: 0 },
+      byes: { type: Number, default: 0 },
+      legByes: { type: Number, default: 0 },
     },
   },
-  { timestamps: true }
-);
+  deliveries: [
+    {
+      type: {
+        type: String,
+        enum: [
+          'normal',
+          'wide',
+          'no-ball',
+          'bye',
+          'legbye',
+          'overthrow',
+          'wicket',
+        ],
+        required: true,
+      },
+      runs: { type: Number, required: true },
+      extras: { type: String },
+    },
+  ],
+});
 
-module.exports = mongoose.model("Match", MatchSchema);
+module.exports = mongoose.model('Score', scoreSchema);
