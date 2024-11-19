@@ -1,83 +1,58 @@
-const express = require("express");
-const router = express.Router();
-const Match = require("../models/Match");
-const PlayerStats = require("../models/PlayerStats");
-const Ball = require("../models/Ball");
+const Score = require('../models/score');
 
-// Helper Function
-const handleScenario = (scenario, ballData) => {
-  const updates = {
-    batsman: {},
-    bowler: {},
-    team: {},
-    extras: {},
-  };
-
-  switch (scenario) {
-    case "wide+runs":
-      updates.bowler.runsConceded = ballData.runs;
-      updates.bowler.extrasWide = 1;
-      updates.team.extras = ballData.runs;
-      break;
-
-    case "noball+bye":
-      updates.batsman.ballsFaced = 1;
-      updates.bowler.runsConceded = ballData.runs;
-      updates.bowler.extrasNoBall = 1;
-      updates.team.extras = ballData.runs;
-      break;
-
-    // Add more scenarios as needed
-
-    default:
-      throw new Error("Unknown scenario");
-  }
-
-  return updates;
-};
-
-// Route for recording a ball
-router.post("/record-ball", async (req, res) => {
-  const { matchId, over, ball, batsman, bowler, runs, extras, outcome, scenario } = req.body;
+// Add delivery data
+const addDelivery = async (req, res) => {
+  const { matchId, type, runs, extras } = req.body;
 
   try {
-    // Create a new ball entry
-    const newBall = await Ball.create({
-      matchId,
-      over,
-      ball,
-      batsman,
-      bowler,
-      runs,
-      extras,
-      outcome,
-    });
+    let match = await Score.findOne({ matchId });
+    if (!match) {
+      match = new Score({ matchId });
+    }
 
-    // Handle scenario effects
-    const updates = handleScenario(scenario, newBall);
+    const delivery = { type, runs, extras };
 
-    // Update stats based on the scenario
-    const batsmanStats = await PlayerStats.findOneAndUpdate(
-      { playerId: batsman, matchId },
-      { $inc: updates.batsman },
-      { new: true }
-    );
-    const bowlerStats = await PlayerStats.findOneAndUpdate(
-      { playerId: bowler, matchId },
-      { $inc: updates.bowler },
-      { new: true }
-    );
-    const match = await Match.findOneAndUpdate(
-      { matchId },
-      { $inc: updates.team },
-      { new: true }
-    );
+    // Update match stats based on the delivery type
+    if (type === 'wide') {
+      match.teamStats.extras.wides += runs;
+      match.teamStats.totalRuns += runs;
+    } else if (type === 'no-ball') {
+      match.teamStats.extras.noBalls += 1;
+      match.teamStats.totalRuns += runs;
+    } else if (type === 'normal') {
+      match.teamStats.totalRuns += runs;
+    } else if (type === 'normal') {
+      match.teamStats.totalRuns += runs;
+    } else if (type === 'normal') {
+      match.teamStats.totalRuns += runs;
+    } else if (type === 'normal') {
+      match.teamStats.totalRuns += runs;
+    } else if (type === 'normal') {
+      match.teamStats.totalRuns += runs;
+    }
 
-    res.status(200).json({ success: true, message: "Ball recorded successfully", newBall });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: "Error recording ball" });
+    match.deliveries.push(delivery);
+    await match.save();
+    res.status(201).json({ success: true, match });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Server Error' });
   }
-});
+};
 
-module.exports = router;
+// Get match stats
+const getMatchStats = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const match = await Score.findOne({ matchId: id });
+    if (!match) {
+      return res.status(404).json({ success: false, error: 'Match not found' });
+    }
+    res.status(200).json({ success: true, match });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Server Error' });
+  }
+};
+
+module.exports = { addDelivery, getMatchStats };
